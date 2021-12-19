@@ -1,0 +1,17 @@
+{
+  "name": "go-n-give",
+  "version": "1.0.0",
+  "description": "go go go go go get the stats, then give em to mo",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"You really think I'm going to test my code?\""
+  },
+  "author": "empty lot",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.0"
+  }
+}
