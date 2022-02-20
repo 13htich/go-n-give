@@ -84,7 +84,7 @@ export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
             const id = v4();
             const p = Number(playerId);
             const t = "A";
-            const d = (goals / Math.abs(assists)) as 1 | -1;
+            const d = (assists / Math.abs(assists)) as 1 | -1;
             const ts = bs.ts;
             plays.push({
                 id,
@@ -161,7 +161,7 @@ export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
             const id = v4();
             const p = Number(playerId);
             const t = "A";
-            const d = (goals / Math.abs(assists)) as 1 | -1;
+            const d = (assists / Math.abs(assists)) as 1 | -1;
             const ts = bs.ts;
             plays.push({
                 id,
