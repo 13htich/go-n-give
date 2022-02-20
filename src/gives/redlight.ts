@@ -186,8 +186,8 @@ export const redlight = (play: PlayDTO) => {
             break;
         }
         case "A": {
-            const verb = positive ? "ASSISTED" : "REVERTED";
-            shoutcaster.info("GOAL %o: [%o]", verb, play.p);
+            const verb = positive ? "ASSISTED" : "ASSIST REVERTED";
+            shoutcaster.info("%o: [%o]", verb, play.p);
             break;
         }
         case "W": {
