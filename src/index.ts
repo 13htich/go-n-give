@@ -20,12 +20,6 @@ const main = async () => {
             // load score
             const boxscore = await loadScore(game);
             const previousBoxscore = await readGameScore(game.id);
-            if (!previousBoxscore) {
-                if (!(await writeGameScore(boxscore)))
-                    shoutcaster.error(
-                        `FAILED TO WRITE BOXSCORE ${boxscore.id}`
-                    );
-            }
 
             const plays = getPlays(boxscore, previousBoxscore);
 
@@ -33,6 +27,8 @@ const main = async () => {
                 redlight(play);
                 // await goToSleep(1337);
             }
+            if (!(await writeGameScore(boxscore)))
+                shoutcaster.error(`FAILED TO WRITE BOXSCORE ${boxscore.id}`);
         }
         shoutcaster.info(
             "FINISHED PROCESSING %o GAMES in %o seconds",
