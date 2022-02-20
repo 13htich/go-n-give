@@ -55,7 +55,6 @@ export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
             const t = playerStats.outcome;
             const d = 1;
             const ts = bs.ts;
-            // shoutcaster.error("WIN");
             plays.push({
                 id,
                 p,
@@ -72,7 +71,6 @@ export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
             const t = "G";
             const d = (goals / Math.abs(goals)) as 1 | -1;
             const ts = bs.ts;
-            // shoutcaster.error("GOAL");
             plays.push({
                 id,
                 p,
@@ -88,7 +86,6 @@ export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
             const t = "A";
             const d = (goals / Math.abs(assists)) as 1 | -1;
             const ts = bs.ts;
-            // shoutcaster.error("ASSIST");
             plays.push({
                 id,
                 p,
@@ -103,5 +100,28 @@ export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
 };
 
 export const redlight = (play: PlayDTO) => {
-    shoutcaster.info("HEY MO UPDATE THE SPREADSHEET: \n%O", play);
+    // shoutcaster.info("HEY MO UPDATE THE SPREADSHEET: \n%O", play);
+    const positive = Math.abs(play.d) === play.d;
+    switch (play.t) {
+        case "G": {
+            const verb = positive ? "SCORED" : "REVERTED";
+            shoutcaster.info("GOAL %o: [%o]", verb, play.p);
+            break;
+        }
+        case "A": {
+            const verb = positive ? "ASSISTED" : "REVERTED";
+            shoutcaster.info("GOAL %o: [%o]", verb, play.p);
+            break;
+        }
+        case "W": {
+            const verb = positive ? "WON" : "WIN REVERTED";
+            shoutcaster.info("GAME %o: [%o]", verb, play.p);
+            break;
+        }
+        case "SO": {
+            const verb = positive ? "SHUTOUT" : "SHUTOUT REVERTED";
+            shoutcaster.info("GAME %o: [%o]", verb, play.p);
+            break;
+        }
+    }
 };

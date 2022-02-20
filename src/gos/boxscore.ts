@@ -12,7 +12,7 @@ interface BoxScoreJSON {
                 id: number;
             };
             teamStats: {
-                goals: number;
+                teamSkaterStats: { goals: number };
             };
             players: {
                 // id prefixed with 'ID'
@@ -39,7 +39,7 @@ interface BoxScoreJSON {
                 id: number;
             };
             teamStats: {
-                goals: number;
+                teamSkaterStats: { goals: number };
             };
             players: {
                 // id prefixed with 'ID'
@@ -115,7 +115,7 @@ const transform = (json: BoxScoreJSON, game: Game): BoxScore => {
             if (goalieStats) {
                 const outcome: GoalieOutcome =
                     goalieStats.decision === "W" &&
-                    json.teams.away.teamStats.goals === 0
+                    json.teams.away.teamStats.teamSkaterStats.goals === 0
                         ? "SO"
                         : goalieStats.decision === "W"
                         ? "W"
@@ -154,7 +154,7 @@ const transform = (json: BoxScoreJSON, game: Game): BoxScore => {
             if (goalieStats) {
                 const outcome: GoalieOutcome =
                     goalieStats.decision === "W" &&
-                    json.teams.home.teamStats.goals === 0
+                    json.teams.home.teamStats.teamSkaterStats.goals === 0
                         ? "SO"
                         : goalieStats.decision === "W"
                         ? "W"
@@ -180,12 +180,12 @@ const transform = (json: BoxScoreJSON, game: Game): BoxScore => {
         ts: game.ts,
         home: {
             id: json.teams.home.team.id,
-            score: json.teams.home.teamStats.goals,
+            score: json.teams.home.teamStats.teamSkaterStats.goals,
             players: homeBoys,
         },
         away: {
             id: json.teams.away.team.id,
-            score: json.teams.away.teamStats.goals,
+            score: json.teams.away.teamStats.teamSkaterStats.goals,
             players: awayBoys,
         },
     };

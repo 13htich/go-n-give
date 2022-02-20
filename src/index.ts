@@ -13,6 +13,8 @@ const goToSleep = (ms: number) => {
 const main = async () => {
     // ive always wanted to put one of these into production...
     while (1337) {
+        shoutcaster.info("LOADING GAMES...");
+        const now = Date.now();
         const games = await loadGames();
         for (const game of games) {
             // load score
@@ -32,6 +34,11 @@ const main = async () => {
                 // await goToSleep(1337);
             }
         }
+        shoutcaster.info(
+            "FINISHED PROCESSING %o GAMES in %o seconds",
+            games.length,
+            Math.ceil((Date.now() - now) / 1000)
+        );
     }
 };
 
