@@ -3,8 +3,10 @@
 import { loadScore } from "./gos/boxscore";
 import { loadGames } from "./gos/games";
 import { readGameScore, writeGameScore } from "./lockerroom/lockers";
-import { getPlays, redlight } from "./gives/redlight";
+import { redlight } from "./gives/redlight";
 import { shoutcaster } from "./lockerroom/shoutcaster";
+import { getPlays } from "./gos/plays";
+import { broadcast } from "./gives/theQ";
 
 const goToSleep = (ms: number) => {
     return new Promise((res) => setTimeout(res, ms));
@@ -20,11 +22,11 @@ const main = async () => {
             // load score
             const boxscore = await loadScore(game);
             const previousBoxscore = await readGameScore(game.id);
-
+            // create playDTOs
             const plays = getPlays(boxscore, previousBoxscore);
 
             for (const play of plays) {
-                redlight(play);
+                await broadcast(play);
                 // await goToSleep(1337);
             }
             if (!(await writeGameScore(boxscore)))
