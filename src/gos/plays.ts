@@ -1,177 +1,96 @@
 import { v4 } from "uuid";
 import { BoxScore } from "./boxscore";
 
+type POINT_TYPE = "G" | "A" | "W" | "SO" | "S40";
 export interface PlayDTO {
     // event id - for idempotency
-    id: string;
+    uuid: string;
     // playerId
-    p: number;
+    player_id: number;
     // point type
-    t: "G" | "A" | "W" | "SO";
+    point_type: POINT_TYPE;
     // delta
-    d: -1 | 1;
+    delta: -1 | 1;
     // game start timestamp - iso8601
-    ts: string;
+    game_start: string;
 }
 
-// todo: refactor
 export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
-    // todo: this function can definitely be cleaned up.
     const plays: PlayDTO[] = [];
-    // home
-    for (const [playerId, playerStats] of Object.entries(bs.home.players)) {
-        const compare = oldbs && oldbs.home.players[Number(playerId)];
-        let { goals, assists } = playerStats;
-        if (compare) {
-            goals = goals - compare.goals;
-            assists = assists - compare.assists;
-        }
+    const pushPlays = (homeOrAway: "home" | "away") => {
+        for (const [playerId, playerStats] of Object.entries(
+            bs[homeOrAway].players
+        )) {
+            const pushPlay = (t: POINT_TYPE, d: 1 | -1) => {
+                const uuid = v4();
+                const player_id = Number(playerId);
+                const point_type = t;
+                const delta = d;
+                const game_start = bs.ts;
+                plays.push({
+                    uuid,
+                    player_id,
+                    point_type,
+                    delta,
+                    game_start,
+                });
+            };
 
-        // shoutcaster.error("GOALS: %O, ASSISTS: %O", goals, assists);
-        if (
-            compare &&
-            compare.outcome &&
-            compare.outcome !== playerStats.outcome
-        ) {
-            // if the previous recorded outcome exists (W or SO) but the new outcome is different, revert previous outcome
-            const id = v4();
-            const p = Number(playerId);
-            const t = compare.outcome;
-            const d = -1; // revert
-            const ts = bs.ts;
-            plays.push({
-                id,
-                p,
-                t,
-                d,
-                ts,
-            });
-        }
-        const compareOutcome = compare && compare.outcome;
-        if (playerStats.outcome && compareOutcome !== playerStats.outcome) {
-            // if the new outcome exists and is not already recorded, send outcome to mo
-            const id = v4();
-            const p = Number(playerId);
-            const t = playerStats.outcome;
-            const d = 1;
-            const ts = bs.ts;
-            plays.push({
-                id,
-                p,
-                t,
-                d,
-                ts,
-            });
-        }
+            const compare =
+                oldbs && oldbs[homeOrAway].players[Number(playerId)];
 
-        // goals
-        for (let i = 0; i < Math.abs(goals); i++) {
-            const id = v4();
-            const p = Number(playerId);
-            const t = "G";
-            const d = (goals / Math.abs(goals)) as 1 | -1;
-            const ts = bs.ts;
-            plays.push({
-                id,
-                p,
-                t,
-                d,
-                ts,
-            });
-        }
-        // assists
-        for (let i = 0; i < Math.abs(assists); i++) {
-            const id = v4();
-            const p = Number(playerId);
-            const t = "A";
-            const d = (assists / Math.abs(assists)) as 1 | -1;
-            const ts = bs.ts;
-            plays.push({
-                id,
-                p,
-                t,
-                d,
-                ts,
-            });
-        }
-    }
-    // away
-    for (const [playerId, playerStats] of Object.entries(bs.away.players)) {
-        const compare = oldbs && oldbs.away.players[Number(playerId)];
-        let { goals, assists } = playerStats;
-        if (compare) {
-            goals = goals - compare.goals;
-            assists = assists - compare.assists;
-        }
+            // shoutcaster.error("GOALS: %O, ASSISTS: %O", goals, assists);
+            if (
+                compare &&
+                compare.outcome &&
+                compare.outcome !== playerStats.outcome
+            ) {
+                // if the previous recorded outcome exists (W or SO) but the new outcome is different, revert previous outcome
+                const t = compare.outcome;
+                const d = -1; // revert
+                pushPlay(t, d);
+            }
+            const compareOutcome = compare && compare.outcome;
+            if (playerStats.outcome && compareOutcome !== playerStats.outcome) {
+                // if the new outcome exists and is not already recorded, send outcome to mo
+                const t = playerStats.outcome;
+                const d = 1;
+                pushPlay(t, d);
+            }
+            if (playerStats.saves) {
+                const prevSave40s = Math.floor((compare?.saves || 0) / 40);
+                const newSave40s = Math.floor(playerStats.saves / 39);
+                const save40s = newSave40s - prevSave40s;
+                // save40s
+                for (let i = 0; i < Math.abs(save40s); i++) {
+                    const t = "S40";
+                    const d = (save40s / Math.abs(save40s)) as 1 | -1;
+                    pushPlay(t, d);
+                }
+            }
 
-        // shoutcaster.error("GOALS: %O, ASSISTS: %O", goals, assists);
-        if (
-            compare &&
-            compare.outcome &&
-            compare.outcome !== playerStats.outcome
-        ) {
-            // if the previous recorded outcome exists (W or SO) but the new outcome is different, revert previous outcome
-            const id = v4();
-            const p = Number(playerId);
-            const t = compare.outcome;
-            const d = -1; // revert
-            const ts = bs.ts;
-            plays.push({
-                id,
-                p,
-                t,
-                d,
-                ts,
-            });
+            let { goals, assists } = playerStats;
+            if (compare) {
+                goals = goals - compare.goals;
+                assists = assists - compare.assists;
+            }
+            // goals
+            for (let i = 0; i < Math.abs(goals); i++) {
+                const t = "G";
+                const d = (goals / Math.abs(goals)) as 1 | -1;
+                pushPlay(t, d);
+            }
+            // assists
+            for (let i = 0; i < Math.abs(assists); i++) {
+                const t = "A";
+                const d = (assists / Math.abs(assists)) as 1 | -1;
+                pushPlay(t, d);
+            }
         }
-        const compareOutcome = compare && compare.outcome;
-        if (playerStats.outcome && compareOutcome !== playerStats.outcome) {
-            // if the new outcome exists and is not already recorded, send outcome to mo
-            const id = v4();
-            const p = Number(playerId);
-            const t = playerStats.outcome;
-            const d = 1;
-            const ts = bs.ts;
-            plays.push({
-                id,
-                p,
-                t,
-                d,
-                ts,
-            });
-        }
+    };
 
-        // goals
-        for (let i = 0; i < Math.abs(goals); i++) {
-            const id = v4();
-            const p = Number(playerId);
-            const t = "G";
-            const d = (goals / Math.abs(goals)) as 1 | -1;
-            const ts = bs.ts;
-            plays.push({
-                id,
-                p,
-                t,
-                d,
-                ts,
-            });
-        }
-        // assists
-        for (let i = 0; i < Math.abs(assists); i++) {
-            const id = v4();
-            const p = Number(playerId);
-            const t = "A";
-            const d = (assists / Math.abs(assists)) as 1 | -1;
-            const ts = bs.ts;
-            plays.push({
-                id,
-                p,
-                t,
-                d,
-                ts,
-            });
-        }
-    }
+    pushPlays("home");
+    pushPlays("away");
 
     return plays;
 };

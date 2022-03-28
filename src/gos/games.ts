@@ -10,6 +10,9 @@ interface GamesJSON {
         games: Array<{
             gamePk: number;
             gameDate: string;
+            status: {
+                statusCode: string;
+            };
             teams: {
                 home: {
                     team: {
@@ -31,6 +34,7 @@ export interface Game {
     ts: string;
     home: number; // teamId
     away: number; // teamId
+    state: string; // "1" === scheduled, "7" === final
 }
 
 const validate = (json: any): json is GamesJSON => {
@@ -68,6 +72,7 @@ const transform = (json: GamesJSON): Game[] => {
                 ts: game.gameDate,
                 home: game.teams.home.team.id,
                 away: game.teams.home.team.id,
+                state: game.status.statusCode,
             });
         }
         return games;

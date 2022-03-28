@@ -1,7 +1,6 @@
 import { PlayDTO } from "../gos/plays";
 import { shoutcaster } from "../lockerroom/shoutcaster";
 import * as zmq from "zeromq";
-import { promisify } from "util";
 import { redlight } from "./redlight";
 
 const THE_AM_THE_FM_THE_PM_TOO = "tcp://127.0.0.1:3000";
@@ -14,7 +13,6 @@ export const broadcast = async (play: PlayDTO): Promise<void> => {
         sock.bindSync(THE_AM_THE_FM_THE_PM_TOO);
         shoutcaster.info(THE_AM_THE_FM_THE_PM_TOO + " THE Q is now live!");
     }
-    shoutcaster.info("we have a new play on the ice, \n%o", play);
     sock.send(JSON.stringify(play));
 };
 

@@ -29,6 +29,7 @@ interface BoxScoreJSON {
                             assists: number;
                             goals: number;
                             decision?: "W" | "L";
+                            saves: number;
                         };
                     };
                 };
@@ -56,6 +57,7 @@ interface BoxScoreJSON {
                             assists: number;
                             goals: number;
                             decision?: "W" | "L";
+                            saves: number;
                         };
                     };
                 };
@@ -71,6 +73,7 @@ interface PlayerStats {
     goals: number;
     assists: number;
     outcome?: GoalieOutcome;
+    saves?: number;
 }
 
 export interface BoxScore {
@@ -124,6 +127,7 @@ const transform = (json: BoxScoreJSON, game: Game): BoxScore => {
                     goals: goalieStats.goals,
                     assists: goalieStats.assists,
                     outcome,
+                    saves: goalieStats.saves,
                 };
             }
             if (skaterStats) {
@@ -163,6 +167,7 @@ const transform = (json: BoxScoreJSON, game: Game): BoxScore => {
                     goals: goalieStats.goals,
                     assists: goalieStats.assists,
                     outcome,
+                    saves: goalieStats.saves,
                 };
             }
             if (skaterStats) {
