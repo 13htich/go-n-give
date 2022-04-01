@@ -1,7 +1,9 @@
 import { v4 } from "uuid";
 import { BoxScore } from "./boxscore";
 
-type POINT_TYPE = "G" | "A" | "W" | "SO" | "S40";
+const SAVE_BATCH_SIZE = 40;
+type POINT_TYPE = "G" | "A" | "W" | "SO" | "SB";
+
 export interface PlayDTO {
     // event id - for idempotency
     uuid: string;
@@ -58,13 +60,17 @@ export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
                 pushPlay(t, d);
             }
             if (playerStats.saves) {
-                const prevSave40s = Math.floor((compare?.saves || 0) / 40);
-                const newSave40s = Math.floor(playerStats.saves / 39);
-                const save40s = newSave40s - prevSave40s;
-                // save40s
-                for (let i = 0; i < Math.abs(save40s); i++) {
-                    const t = "S40";
-                    const d = (save40s / Math.abs(save40s)) as 1 | -1;
+                const prevSaveBatches = Math.floor(
+                    (compare?.saves || 0) / SAVE_BATCH_SIZE
+                );
+                const newSaveBatches = Math.floor(
+                    playerStats.saves / SAVE_BATCH_SIZE
+                );
+                const saveBatches = newSaveBatches - prevSaveBatches;
+                // saveBatches
+                for (let i = 0; i < Math.abs(saveBatches); i++) {
+                    const t = "SB";
+                    const d = (saveBatches / Math.abs(saveBatches)) as 1 | -1;
                     pushPlay(t, d);
                 }
             }

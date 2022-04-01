@@ -25,7 +25,7 @@ export const redlight = (play: PlayDTO) => {
             shoutcaster.info("GAME %o: [%o]", verb, play.point_type);
             break;
         }
-        case "S40": {
+        case "SB": {
             shoutcaster.info("WOW 40 SAVES~!");
             break;
         }
