@@ -10,6 +10,10 @@ export const redlight = (play: PlayDTO) => {
             shoutcaster.info("GOAL %o: [%o]", verb, play.point_type);
             break;
         }
+        case "GP": {
+            shoutcaster.info("%o TOUCHED ICE!", play.player_id);
+            break;
+        }
         case "A": {
             const verb = positive ? "ASSISTED" : "ASSIST REVERTED";
             shoutcaster.info("%o: [%o]", verb, play.point_type);
@@ -27,6 +31,20 @@ export const redlight = (play: PlayDTO) => {
         }
         case "SB": {
             shoutcaster.info("WOW 40 SAVES~!");
+            break;
+        }
+        case "H": {
+            shoutcaster.info(
+                ["*snap*", "*crackle*", "*pop*"][Math.floor(Math.random() * 3)]
+            );
+            break;
+        }
+        case "BS": {
+            shoutcaster.info("%s took one for the team", play.player_id);
+            break;
+        }
+        case "SHP": {
+            shoutcaster.info("Shawty %s got low low low", play.player_id);
             break;
         }
     }

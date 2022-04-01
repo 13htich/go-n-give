@@ -5,64 +5,47 @@ import { gameplan } from "../lockerroom/gameplan";
 import { shoutcaster } from "../lockerroom/shoutcaster";
 import { Game } from "./games";
 
+interface PlayerJSON {
+    person: {
+        id: number;
+    };
+    stats: {
+        skaterStats?: {
+            timeOnIce: string;
+            assists: number;
+            goals: number;
+            hits: number;
+            blocked: number;
+            shortHandedGoals: number;
+            shortHandedAssists: number;
+        };
+        goalieStats?: {
+            timeOnIce: string;
+            assists: number;
+            goals: number;
+            decision?: "W" | "L";
+            saves: number;
+        };
+    };
+}
+
+interface TeamJSON {
+    team: {
+        id: number;
+    };
+    teamStats: {
+        teamSkaterStats: { goals: number };
+    };
+    players: {
+        // id prefixed with 'ID'
+        [idString: string]: PlayerJSON;
+    };
+}
+
 interface BoxScoreJSON {
     teams: {
-        home: {
-            team: {
-                id: number;
-            };
-            teamStats: {
-                teamSkaterStats: { goals: number };
-            };
-            players: {
-                // id prefixed with 'ID'
-                [idString: string]: {
-                    person: {
-                        id: number;
-                    };
-                    stats: {
-                        skaterStats?: {
-                            assists: number;
-                            goals: number;
-                        };
-                        goalieStats?: {
-                            assists: number;
-                            goals: number;
-                            decision?: "W" | "L";
-                            saves: number;
-                        };
-                    };
-                };
-            };
-        };
-        away: {
-            team: {
-                id: number;
-            };
-            teamStats: {
-                teamSkaterStats: { goals: number };
-            };
-            players: {
-                // id prefixed with 'ID'
-                [idString: string]: {
-                    person: {
-                        id: number;
-                    };
-                    stats: {
-                        skaterStats?: {
-                            assists: number;
-                            goals: number;
-                        };
-                        goalieStats?: {
-                            assists: number;
-                            goals: number;
-                            decision?: "W" | "L";
-                            saves: number;
-                        };
-                    };
-                };
-            };
-        };
+        home: TeamJSON;
+        away: TeamJSON;
     };
 }
 
@@ -70,10 +53,14 @@ interface BoxScoreJSON {
 type GoalieOutcome = "W" | "SO" | undefined;
 
 interface PlayerStats {
+    touchedIce: boolean;
     goals: number;
     assists: number;
     outcome?: GoalieOutcome;
     saves?: number;
+    tb1?: number;
+    tb2?: number;
+    tb3?: number;
 }
 
 export interface BoxScore {
@@ -94,6 +81,17 @@ export interface BoxScore {
         };
     };
 }
+const hasTouchedIce = (timeOnIce: string) => {
+    // wrap in try/catch incase timeOnIce is messsed up (should be 0:00 but who knows)
+    try {
+        const [minutes, seconds] = timeOnIce.split(":").map(Number);
+        if (minutes === 0 && seconds === 0) return false;
+
+        return true;
+    } catch {
+        return false;
+    }
+};
 
 const validate = (json: any): json is BoxScoreJSON => {
     //todo
@@ -101,85 +99,62 @@ const validate = (json: any): json is BoxScoreJSON => {
 };
 
 const transform = (json: BoxScoreJSON, game: Game): BoxScore => {
-    const homeBoys = Object.values(json.teams.home.players).reduce(
-        (
-            theBoys: {
-                [id: number]: PlayerStats;
-            },
-            playa
-        ) => {
-            // only one of these will be defined, sometimes niether.
-            const skaterStats = playa.stats.skaterStats;
-            const goalieStats = playa.stats.goalieStats;
-            if (!skaterStats && !goalieStats) {
-                // must be the coaches son, just ignore these players....
+    const boys2Men = (
+        homeOrAway: "home" | "away"
+    ): Record<string, PlayerStats> => {
+        const otherTeam = homeOrAway === "home" ? "away" : "home";
+        return Object.values(json.teams[homeOrAway].players).reduce(
+            (
+                theBoys: {
+                    [id: number]: PlayerStats;
+                },
+                playa
+            ) => {
+                // only one of these will be defined, sometimes niether.
+                const skaterStats = playa.stats.skaterStats;
+                const goalieStats = playa.stats.goalieStats;
+                if (!skaterStats && !goalieStats) {
+                    // must be the coaches son, just ignore these players....
+                    return theBoys;
+                }
+                if (goalieStats) {
+                    const outcome: GoalieOutcome =
+                        goalieStats.decision === "W" &&
+                        json.teams[otherTeam].teamStats.teamSkaterStats
+                            .goals === 0
+                            ? "SO"
+                            : goalieStats.decision === "W"
+                            ? "W"
+                            : undefined;
+                    theBoys[playa.person.id] = {
+                        touchedIce: hasTouchedIce(goalieStats.timeOnIce),
+                        goals: goalieStats.goals,
+                        assists: goalieStats.assists,
+                        outcome,
+                        saves: goalieStats.saves,
+                    };
+                }
+                if (skaterStats) {
+                    theBoys[playa.person.id] = {
+                        touchedIce: hasTouchedIce(skaterStats.timeOnIce),
+                        goals: skaterStats.goals,
+                        assists: skaterStats.assists,
+                        tb1: skaterStats.hits,
+                        tb2: skaterStats.blocked,
+                        tb3:
+                            skaterStats.shortHandedGoals +
+                            skaterStats.shortHandedAssists,
+                    };
+                }
                 return theBoys;
-            }
-            if (goalieStats) {
-                const outcome: GoalieOutcome =
-                    goalieStats.decision === "W" &&
-                    json.teams.away.teamStats.teamSkaterStats.goals === 0
-                        ? "SO"
-                        : goalieStats.decision === "W"
-                        ? "W"
-                        : undefined;
-                theBoys[playa.person.id] = {
-                    goals: goalieStats.goals,
-                    assists: goalieStats.assists,
-                    outcome,
-                    saves: goalieStats.saves,
-                };
-            }
-            if (skaterStats) {
-                theBoys[playa.person.id] = {
-                    goals: skaterStats.goals,
-                    assists: skaterStats.assists,
-                };
-            }
-            return theBoys;
-        },
-        {}
-    );
+            },
+            {}
+        );
+    };
+    const homeBoys = boys2Men("home");
 
-    const awayBoys = Object.values(json.teams.away.players).reduce(
-        (
-            theBoys: {
-                [id: number]: PlayerStats;
-            },
-            playa
-        ) => {
-            // only one of these will be defined, sometimes niether.
-            const skaterStats = playa.stats.skaterStats;
-            const goalieStats = playa.stats.goalieStats;
-            if (!skaterStats && !goalieStats) {
-                // must be the coaches son, just ignore these players....
-                return theBoys;
-            }
-            if (goalieStats) {
-                const outcome: GoalieOutcome =
-                    goalieStats.decision === "W" &&
-                    json.teams.home.teamStats.teamSkaterStats.goals === 0
-                        ? "SO"
-                        : goalieStats.decision === "W"
-                        ? "W"
-                        : undefined;
-                theBoys[playa.person.id] = {
-                    goals: goalieStats.goals,
-                    assists: goalieStats.assists,
-                    outcome,
-                    saves: goalieStats.saves,
-                };
-            }
-            if (skaterStats) {
-                theBoys[playa.person.id] = {
-                    goals: skaterStats.goals,
-                    assists: skaterStats.assists,
-                };
-            }
-            return theBoys;
-        },
-        {}
-    );
+    const awayBoys = boys2Men("away");
+
     return {
         id: game.id,
         ts: game.ts,

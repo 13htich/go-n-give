@@ -2,7 +2,7 @@ import { v4 } from "uuid";
 import { BoxScore } from "./boxscore";
 
 const SAVE_BATCH_SIZE = 40;
-type POINT_TYPE = "G" | "A" | "W" | "SO" | "SB";
+type POINT_TYPE = "G" | "GP" | "A" | "W" | "SO" | "SB" | "H" | "BS" | "SHP";
 
 export interface PlayDTO {
     // event id - for idempotency
@@ -41,24 +41,37 @@ export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
             const compare =
                 oldbs && oldbs[homeOrAway].players[Number(playerId)];
 
-            // shoutcaster.error("GOALS: %O, ASSISTS: %O", goals, assists);
+            // player touched ice for the first time.
+            if (playerStats.touchedIce && !(compare && compare.touchedIce)) {
+                const t = "GP";
+                const d = 1;
+                pushPlay(t, d);
+            }
+            // ice touch revoked (lmao)
+            if (!playerStats.touchedIce && compare && compare.touchedIce) {
+                const t = "GP";
+                const d = -1;
+                pushPlay(t, d);
+            }
+
+            // if the previous recorded outcome exists (W or SO) but the new outcome is different, revert previous outcome
             if (
                 compare &&
                 compare.outcome &&
                 compare.outcome !== playerStats.outcome
             ) {
-                // if the previous recorded outcome exists (W or SO) but the new outcome is different, revert previous outcome
                 const t = compare.outcome;
                 const d = -1; // revert
                 pushPlay(t, d);
             }
             const compareOutcome = compare && compare.outcome;
+            // if the new outcome exists and is not already recorded, send outcome to mo
             if (playerStats.outcome && compareOutcome !== playerStats.outcome) {
-                // if the new outcome exists and is not already recorded, send outcome to mo
                 const t = playerStats.outcome;
                 const d = 1;
                 pushPlay(t, d);
             }
+            // goalie saves
             if (playerStats.saves) {
                 const prevSaveBatches = Math.floor(
                     (compare?.saves || 0) / SAVE_BATCH_SIZE
@@ -90,6 +103,36 @@ export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
             for (let i = 0; i < Math.abs(assists); i++) {
                 const t = "A";
                 const d = (assists / Math.abs(assists)) as 1 | -1;
+                pushPlay(t, d);
+            }
+
+            let { tb1 = 0, tb2 = 0, tb3 = 0 } = playerStats;
+            if (compare) {
+                let {
+                    tb1: compareTb1 = 0,
+                    tb2: compareTb2 = 0,
+                    tb3: compareTb3 = 0,
+                } = compare;
+                tb1 = tb1 - compareTb1;
+                tb2 = tb2 - compareTb2;
+                tb3 = tb3 - compareTb3;
+            }
+            // tie breaker 1 - hits (skaters)
+            for (let i = 0; i < Math.abs(tb1); i++) {
+                const t = "H";
+                const d = (tb1 / Math.abs(tb1)) as 1 | -1;
+                pushPlay(t, d);
+            }
+            // tie breaker 2 - blocked shots (skaters)
+            for (let i = 0; i < Math.abs(tb2); i++) {
+                const t = "BS";
+                const d = (tb2 / Math.abs(tb2)) as 1 | -1;
+                pushPlay(t, d);
+            }
+            // tie breaker 3 - short handed points (skaters)
+            for (let i = 0; i < Math.abs(tb3); i++) {
+                const t = "SHP";
+                const d = (tb3 / Math.abs(tb3)) as 1 | -1;
                 pushPlay(t, d);
             }
         }
