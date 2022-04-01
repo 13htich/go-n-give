@@ -59,11 +59,10 @@ const main = async () => {
     while (1337) {
         const start = Date.now();
         // setup
-        shoutcaster.info("LOADING GAMES...");
+        shoutcaster.info("LOADING GAMES");
         const games = await loadGames();
-        shoutcaster.info("PROCESSING GAMES...");
-        // pretty sure there is a bug in here where a live game finishes and gets put into historical w/o result being sent
-        // guess we need an array of live games to do one more run before being removed
+        shoutcaster.info("GAMES LOADED");
+
         const [historicGames, liveGames, nextGameTS] = games.reduce<
             [Game[], Game[], number]
         >(
