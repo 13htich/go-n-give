@@ -7,6 +7,9 @@ const STORAGE_BASE_PATH = path.normalize(__dirname + "/../../storage/");
 
 const getFileName = (gameId: number) => `game-${gameId}.json`;
 
+// at some point we will upgrade these lockers from the fs model to the db model.
+// not in this years budget. (2022)
+
 export function readGameScore(gameId: number): Promise<BoxScore | null> {
     return new Promise((res) => {
         try {

@@ -53,6 +53,8 @@ const processGames = async (games: Game[]): Promise<void> => {
 const main = async () => {
     // begs for recursion, but my will is strong
     let checkForCorrections = true;
+    // really begging for it.
+    let previousLiveGameIds: number[] = [];
     // ive always wanted to put one of these into production
     while (1337) {
         const start = Date.now();
@@ -67,8 +69,23 @@ const main = async () => {
         >(
             ([historicGames, liveGames, nextGameTS], game) => {
                 if (gameStartedBefore(game, start) && gameHasFinished(game)) {
+                    // handle games as they end
+                    if (previousLiveGameIds.includes(game.id)) {
+                        previousLiveGameIds = previousLiveGameIds.filter(
+                            (gId) => game.id !== gId
+                        );
+                        return [
+                            historicGames,
+                            liveGames.concat(game),
+                            nextGameTS,
+                        ];
+                    }
                     return [historicGames.concat(game), liveGames, nextGameTS];
                 } else if (gameStartedBefore(game, start)) {
+                    // track live games so that they get updated one more time after finishing.
+                    if (!previousLiveGameIds.includes(game.id)) {
+                        previousLiveGameIds.push(game.id);
+                    }
                     return [historicGames, liveGames.concat(game), nextGameTS];
                 } else if (new Date(game.ts).getTime() < nextGameTS) {
                     return [
@@ -84,10 +101,12 @@ const main = async () => {
 
         // processing
         if (liveGames.length) {
+            shoutcaster.info("PROCESSING %o LIVE GAMES", liveGames.length);
             await processGames(liveGames);
             shoutcaster.info("PROCESSED %o LIVE GAMES", liveGames.length);
         }
         if (historicGames.length && checkForCorrections) {
+            shoutcaster.info("CHECKING %o OLD GAMES", historicGames.length);
             await processGames(historicGames);
             shoutcaster.info("CHECKED %o OLD GAMES", historicGames.length);
         }
