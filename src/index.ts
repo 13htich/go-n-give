@@ -3,11 +3,9 @@
 import { loadScore } from "./gos/boxscore";
 import { Game, loadGames } from "./gos/games";
 import { readGameScore, writeGameScore } from "./lockerroom/lockers";
-import { redlight } from "./gives/redlight";
 import { shoutcaster } from "./lockerroom/shoutcaster";
 import { getPlays } from "./gos/plays";
-import { broadcast } from "./gives/theQ";
-import { hooking } from "./gives/hooking";
+import { hookingQ } from "./gives/theQ";
 
 // util
 const goToSleep = (ms: number) => {
@@ -25,28 +23,17 @@ const processGames = async (games: Game[]): Promise<void> => {
         const previousBoxscore = await readGameScore(game.id);
         // create playDTOs
         const plays = getPlays(boxscore, previousBoxscore);
-
-        // const hookingCalls: Promise<string>[] = [];
-        for (const play of plays) {
-            redlight(play);
-            // hookingCalls.push(hooking(play));
-            try {
-                await hooking(play);
-            } catch (e) {
-                shoutcaster.error("failed to hook on this play: %o", play);
-            }
-        }
-        // const report = await Promise.allSettled(hookingCalls);
-        // report.forEach((result) => {
-        //     if (result.status === "rejected") {
-        //         shoutcaster.error(
-        //             "failed to hook on this play: %s",
-        //             result.reason
-        //         );
-        //     }
-        // });
+        const jobs = await hookingQ.addBulk(
+            plays.map((play) => ({ name: "play", data: play }))
+        );
         if (!(await writeGameScore(boxscore)))
-            shoutcaster.error(`FAILED TO WRITE BOXSCORE ${boxscore.id}`);
+            shoutcaster.error(
+                `FAILED TO WRITE BOXSCORE ${
+                    boxscore.id
+                }, potential duplicates of ${jobs
+                    .map((job) => job.id + ":" + job.data.uuid)
+                    .join(",")}`
+            );
     }
 };
 

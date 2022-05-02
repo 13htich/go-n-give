@@ -1,34 +1,38 @@
+import { Queue, QueueEvents, Worker } from "bullmq";
 import { PlayDTO } from "../gos/plays";
 import { shoutcaster } from "../lockerroom/shoutcaster";
-import * as zmq from "zeromq";
+import { hooking } from "./hooking";
 import { redlight } from "./redlight";
+//Add jobs to the queue:
 
-const THE_AM_THE_FM_THE_PM_TOO = "tcp://127.0.0.1:3000";
+export const hookingQ = new Queue("hookin");
 
-// publish to 0mq
-let sock: zmq.Socket;
-export const broadcast = async (play: PlayDTO): Promise<void> => {
-    if (!sock) {
-        sock = zmq.socket("push");
-        sock.bindSync(THE_AM_THE_FM_THE_PM_TOO);
-        shoutcaster.info(THE_AM_THE_FM_THE_PM_TOO + " THE Q is now live!");
+//Process the jobs in your workers:
+
+const worker = new Worker<PlayDTO>("hookin", async (job) => {
+    if (job.name === "play") {
+        try {
+            redlight(job.data);
+            await hooking(job.data);
+        } catch (e) {
+            shoutcaster.error(
+                "job failed, retrying in 5 min. \n",
+                JSON.stringify
+            );
+            // try again in 5 minutes
+            hookingQ.add("play", job.data, { delay: 5 * 60 * 1000 });
+        }
     }
-    sock.send(JSON.stringify(play));
-};
+});
 
-let listener: zmq.Socket;
-const listenIn = () => {
-    //review plays from zeroMq
-    if (!listener) {
-        listener = zmq.socket("pull");
-        listener.connect(THE_AM_THE_FM_THE_PM_TOO);
-        listener.on("message", (msg: string) => redlight(JSON.parse(msg)));
-        shoutcaster.info(
-            "YOU ARE NOW LISTENING TO " + THE_AM_THE_FM_THE_PM_TOO + " THE Q~!"
-        );
-    }
-};
+//Listen to jobs for completion:
 
-if (process.env.NODE_ENV === "demo") {
-    listenIn();
-}
+const queueEvents = new QueueEvents("hookin");
+
+queueEvents.on("completed", () => {
+    shoutcaster.info("~hooked~");
+});
+
+queueEvents.on("failed", (something) => {
+    shoutcaster.error("queue error:\n", JSON.stringify(something));
+});
