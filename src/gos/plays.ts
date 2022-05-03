@@ -71,6 +71,21 @@ export const getPlays = (bs: BoxScore, oldbs: BoxScore | null): PlayDTO[] => {
                 const d = 1;
                 pushPlay(t, d);
             }
+            //now for shutouts
+            // there used to be a shutout, now there is not
+            // so.. revert
+            if (compare && compare.shutout && !playerStats.shutout) {
+                const t = "SO";
+                const d = -1;
+                pushPlay(t, d);
+            }
+            // shutout now exists
+            if (playerStats.shutout && !(compare && compare.shutout)) {
+                const t = "SO";
+                const d = 1;
+                pushPlay(t, d);
+            }
+
             // goalie saves
             if (playerStats.saves) {
                 const prevSaveBatches = Math.floor(

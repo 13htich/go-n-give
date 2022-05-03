@@ -50,13 +50,14 @@ interface BoxScoreJSON {
 }
 
 // X = game in play
-type GoalieOutcome = "W" | "SO" | undefined;
+type GoalieOutcome = "W" | undefined;
 
 interface PlayerStats {
     touchedIce: boolean;
     goals: number;
     assists: number;
     outcome?: GoalieOutcome;
+    shutout?: true;
     saves?: number;
     tb1?: number;
     tb2?: number;
@@ -118,19 +119,20 @@ const transform = (json: BoxScoreJSON, game: Game): BoxScore => {
                     return theBoys;
                 }
                 if (goalieStats) {
-                    const outcome: GoalieOutcome =
+                    const shutout =
                         goalieStats.decision === "W" &&
                         json.teams[otherTeam].teamStats.teamSkaterStats
                             .goals === 0
-                            ? "SO"
-                            : goalieStats.decision === "W"
-                            ? "W"
+                            ? true
                             : undefined;
+                    const outcome: GoalieOutcome =
+                        goalieStats.decision === "W" ? "W" : undefined;
                     theBoys[playa.person.id] = {
                         touchedIce: hasTouchedIce(goalieStats.timeOnIce),
                         goals: goalieStats.goals,
                         assists: goalieStats.assists,
                         outcome,
+                        shutout,
                         saves: goalieStats.saves,
                     };
                 }
