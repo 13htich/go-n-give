@@ -95,8 +95,24 @@ const hasTouchedIce = (timeOnIce: string) => {
 };
 
 const validate = (json: any): json is BoxScoreJSON => {
-    //todo
-    return true;
+    return !!(
+        json &&
+        json.teams &&
+        json.teams.home &&
+        json.teams.home.team &&
+        json.teams.home.team.id &&
+        json.teams.home.teamStats &&
+        json.teams.home.teamStats.teamSkaterStats &&
+        typeof json.teams.home.teamStats.teamSkaterStats.goals === "number" &&
+        json.teams.home.players &&
+        json.teams.away &&
+        json.teams.away.team &&
+        json.teams.away.team.id &&
+        json.teams.away.teamStats &&
+        json.teams.away.teamStats.teamSkaterStats &&
+        typeof json.teams.away.teamStats.teamSkaterStats.goals === "number" &&
+        json.teams.away.players
+    );
 };
 
 const transform = (json: BoxScoreJSON, game: Game): BoxScore => {
