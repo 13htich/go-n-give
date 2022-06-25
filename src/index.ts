@@ -1,6 +1,6 @@
 // import { hitTheShowers } from "./gos/player";
 // import { loadRostersAndGames } from "./gos/roster";
-import { loadScore } from "./gos/boxscore";
+import { BoxScore, loadScore } from "./gos/boxscore";
 import { Game, loadGames } from "./gos/games";
 import { readGameScore, writeGameScore } from "./lockerroom/lockers";
 import { shoutcaster } from "./lockerroom/shoutcaster";
@@ -19,8 +19,17 @@ const gameHasFinished = (game: Game) => game.state === "7";
 const processGames = async (games: Game[]): Promise<void> => {
     for (const game of games) {
         // load score
-        const boxscore = await loadScore(game);
-        const previousBoxscore = await readGameScore(game.id);
+        let boxscore: BoxScore;
+        let previousBoxscore: BoxScore | null;
+        try {
+            boxscore = await loadScore(game);
+            previousBoxscore = await readGameScore(game.id);
+        } catch (e) {
+            // at this point all has potentialy happened is loading failed,
+            // safe to ignore and it will get picked up on the next run
+            shoutcaster.warn("sec, i'll try again");
+            continue;
+        }
         // create playDTOs
         const plays = getPlays(boxscore, previousBoxscore);
         const jobs = await hookingQ.addBulk(
